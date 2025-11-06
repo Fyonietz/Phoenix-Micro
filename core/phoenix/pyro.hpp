@@ -1,3 +1,4 @@
+#include "civetweb.h"
 #include <atomic>
 #include <condition_variable>
 #include <cstring>
@@ -111,7 +112,7 @@ struct Pnix {
   ThreadPool method;
 
   Pnix(size_t numThreads) : method(numThreads) {}
-  std::unordered_map<std::string, std::string> env() {
+  static std::unordered_map<std::string, std::string> env() {
     auto env = wpc_loader("config/main/app.wpc");
 
     return env;
@@ -129,7 +130,24 @@ struct Pnix {
 
     return status_code;
   }
-
+  void CORS(struct mg_connection *connection,
+            const std::string &ip_origin = env()["IP_CORS"]) {
+    mg_printf(
+        connection,
+        "Access-Control-Allow-Origin: %s\r\n"
+        "Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS\r\n"
+        "Access-Control-Allow-Headers: Content-Type, Authorization\r\n"
+        "Access-Control-Allow-Credentials: true\r\n",
+        ip_origin.c_str());
+  }
+  // Function to handle OPTIONS (pre-flight) request
+  int CORS_OPTIONS(struct mg_connection *conn) {
+    // Respond to the OPTIONS request (CORS pre-flight check)
+    mg_printf(conn, "HTTP/1.1 200 OK\r\n");
+    mg_printf(conn, "Content-Length: 0\r\n"); // No body
+    mg_printf(conn, "\r\n");                  // End of headers
+    return 200; // Indicate the request was handled
+  }
   void static_serve(const std::string path, struct mg_connection *connection) {
     std::ifstream file(path);
     if (!file) {

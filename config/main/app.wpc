@@ -1,2 +1,2 @@
 //Phoenix App-Settings Or env
-env=100
+IP_CORS=http://localhost:8000
